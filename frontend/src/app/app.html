@@ -1,0 +1,215 @@
+<main class="shell" [class.auth-shell]="!isAuthed()">
+  @if (!isAuthed()) {
+    <section class="auth-panel">
+      <div>
+        <p class="eyebrow">Multi-tenant SaaS</p>
+        <h1>Run organizations, billing, usage, and access from one cockpit.</h1>
+      </div>
+
+      <div class="mode-switch" role="tablist" aria-label="Authentication mode">
+        <button type="button" [class.active]="authMode() === 'login'" (click)="authMode.set('login')">Login</button>
+        <button type="button" [class.active]="authMode() === 'register'" (click)="authMode.set('register')">Register</button>
+      </div>
+
+      @if (authMode() === 'login') {
+        <form [formGroup]="loginForm" (ngSubmit)="login()" class="form-grid">
+          <label>Email<input type="email" formControlName="email" autocomplete="email"></label>
+          <label>Password<input type="password" formControlName="password" autocomplete="current-password"></label>
+          <button type="submit" [disabled]="loading()">Sign in</button>
+        </form>
+      } @else {
+        <form [formGroup]="registerForm" (ngSubmit)="register()" class="form-grid">
+          <label>Name<input type="text" formControlName="fullName" autocomplete="name"></label>
+          <label>Email<input type="email" formControlName="email" autocomplete="email"></label>
+          <label>Password<input type="password" formControlName="password" autocomplete="new-password"></label>
+          <label>Organization<input type="text" formControlName="organizationName"></label>
+          <button type="submit" [disabled]="loading()">Create workspace</button>
+        </form>
+      }
+
+      @if (message()) {
+        <p class="notice">{{ message() }}</p>
+      }
+    </section>
+  } @else {
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">S</span>
+        <div>
+          <strong>SaaS Platform</strong>
+          <small>{{ organization()?.name }}</small>
+        </div>
+      </div>
+
+      <nav aria-label="Dashboard">
+        <button type="button" [class.active]="view() === 'overview'" (click)="setView('overview')">Overview</button>
+        <button type="button" [class.active]="view() === 'usage'" (click)="setView('usage')">Usage</button>
+        <button type="button" [class.active]="view() === 'billing'" (click)="setView('billing')">Billing</button>
+        <button type="button" [class.active]="view() === 'team'" (click)="setView('team')">Team</button>
+        <button type="button" [class.active]="view() === 'keys'" (click)="setView('keys')">API Keys</button>
+      </nav>
+
+      <button type="button" class="ghost" (click)="logout()">Sign out</button>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">{{ organization()?.role }} workspace</p>
+          <h1>{{ organization()?.name }}</h1>
+        </div>
+        <div class="profile">
+          <span>{{ user()?.fullName }}</span>
+          <strong>{{ organization()?.plan | uppercase }}</strong>
+        </div>
+      </header>
+
+      @if (message()) {
+        <p class="notice">{{ message() }}</p>
+      }
+
+      @if (view() === 'overview') {
+        <section class="metrics">
+          <article>
+            <span>Total units</span>
+            <strong>{{ usage()?.totalUnits ?? 0 }}</strong>
+          </article>
+          <article>
+            <span>Requests</span>
+            <strong>{{ usage()?.totalRequests ?? 0 }}</strong>
+          </article>
+          <article>
+            <span>Errors</span>
+            <strong>{{ usage()?.errorCount ?? 0 }}</strong>
+          </article>
+          <article>
+            <span>Team members</span>
+            <strong>{{ team().length }}</strong>
+          </article>
+        </section>
+
+        <section class="split">
+          <div class="panel">
+            <div class="panel-heading">
+              <h2>Usage trend</h2>
+              <button type="button" (click)="sendSampleUsage()">Send sample</button>
+            </div>
+            <div class="bars">
+              @for (point of usage()?.daily ?? []; track point.date) {
+                <div class="bar-row">
+                  <span>{{ point.date | date:'MMM d' }}</span>
+                  <div><i [style.width.%]="point.units / maxDailyUnits() * 100"></i></div>
+                  <strong>{{ point.units }}</strong>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-heading">
+              <h2>Current subscription</h2>
+              <span class="status">{{ subscription()?.status }}</span>
+            </div>
+            <p class="plan-name">{{ subscription()?.plan | titlecase }}</p>
+            <p class="muted">Stripe Checkout is used for upgrades, with webhook idempotency handled by the backend.</p>
+          </div>
+        </section>
+      }
+
+      @if (view() === 'usage') {
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Recent API activity</h2>
+            <button type="button" (click)="sendSampleUsage()">Send sample</button>
+          </div>
+          <div class="table">
+            @for (event of usage()?.recentEvents ?? []; track event.id) {
+              <div class="table-row">
+                <span>{{ event.method }}</span>
+                <strong>{{ event.path }}</strong>
+                <span>{{ event.statusCode }}</span>
+                <span>{{ event.units }} units</span>
+                <span>{{ event.occurredAt | date:'short' }}</span>
+              </div>
+            }
+          </div>
+        </section>
+      }
+
+      @if (view() === 'billing') {
+        <section class="pricing">
+          @for (plan of ['free', 'pro', 'enterprise']; track plan) {
+            <article>
+              <h2>{{ plan | titlecase }}</h2>
+              <p>{{ plan === 'free' ? '$0' : plan === 'pro' ? '$49' : '$199' }} <span>/ month</span></p>
+              <ul>
+                <li>Organization-scoped dashboard</li>
+                <li>Team role management</li>
+                <li>{{ plan === 'free' ? 'Basic usage history' : 'Expanded usage limits' }}</li>
+              </ul>
+              @if (plan !== 'free') {
+                <button type="button" (click)="createCheckout(plan)">Checkout</button>
+              }
+            </article>
+          }
+        </section>
+      }
+
+      @if (view() === 'team') {
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Team</h2>
+            <form [formGroup]="inviteForm" (ngSubmit)="invite()" class="inline-form">
+              <input type="email" formControlName="email" placeholder="teammate@example.com">
+              <select formControlName="role">
+                <option>Admin</option>
+                <option>Member</option>
+              </select>
+              <button type="submit">Invite</button>
+            </form>
+          </div>
+          <div class="table">
+            @for (member of team(); track member.id) {
+              <div class="table-row">
+                <strong>{{ member.fullName }}</strong>
+                <span>{{ member.email }}</span>
+                <span>{{ member.role }}</span>
+                <span>{{ member.createdAt | date:'mediumDate' }}</span>
+              </div>
+            }
+          </div>
+        </section>
+      }
+
+      @if (view() === 'keys') {
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>API keys</h2>
+            <form [formGroup]="apiKeyForm" (ngSubmit)="createApiKey()" class="inline-form">
+              <input type="text" formControlName="name" placeholder="Key name">
+              <button type="submit">Create key</button>
+            </form>
+          </div>
+
+          @if (oneTimeKey()) {
+            <div class="secret">
+              <span>One-time secret</span>
+              <code>{{ oneTimeKey() }}</code>
+            </div>
+          }
+
+          <div class="table">
+            @for (key of apiKeys(); track key.id) {
+              <div class="table-row">
+                <strong>{{ key.name }}</strong>
+                <code>{{ key.prefix }}...</code>
+                <span>{{ key.revokedAt ? 'Revoked' : 'Active' }}</span>
+                <button type="button" [disabled]="!!key.revokedAt" (click)="revokeKey(key)">Revoke</button>
+              </div>
+            }
+          </div>
+        </section>
+      }
+    </section>
+  }
+</main>

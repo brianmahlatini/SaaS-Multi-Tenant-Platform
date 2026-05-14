@@ -1,0 +1,21 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    environment:
+      ASPNETCORE_URLS: http://+:5000
+      ASPNETCORE_ENVIRONMENT: Development
+      Cors__Origins__0: http://localhost:4200
+      Jwt__SigningKey: dev-only-signing-key-change-before-production-32chars
+      Stripe__ProPriceId: price_pro_replace_me
+      Stripe__EnterprisePriceId: price_enterprise_replace_me
+    ports:
+      - "5000:5000"
+
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "4200:4200"

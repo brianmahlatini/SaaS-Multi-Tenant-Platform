@@ -1,0 +1,12 @@
+bin/
+obj/
+TestResults/
+.vs/
+.vscode/
+node_modules/
+dist/
+.angular/
+.env
+.playwright-mcp/
+backend/*.log
+npm-debug.log*

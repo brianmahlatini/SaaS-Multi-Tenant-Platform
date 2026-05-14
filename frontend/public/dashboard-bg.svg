@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900" role="img" aria-label="Abstract SaaS dashboard">
+  <rect width="1400" height="900" fill="#10231d"/>
+  <rect x="155" y="120" width="1090" height="660" rx="18" fill="#f6faf7"/>
+  <rect x="155" y="120" width="245" height="660" rx="18" fill="#163129"/>
+  <rect x="435" y="170" width="330" height="140" rx="10" fill="#ffffff" stroke="#dbe5df"/>
+  <rect x="795" y="170" width="300" height="140" rx="10" fill="#ffffff" stroke="#dbe5df"/>
+  <rect x="435" y="345" width="660" height="260" rx="10" fill="#ffffff" stroke="#dbe5df"/>
+  <rect x="435" y="635" width="300" height="90" rx="10" fill="#ffffff" stroke="#dbe5df"/>
+  <rect x="765" y="635" width="330" height="90" rx="10" fill="#ffffff" stroke="#dbe5df"/>
+  <circle cx="218" cy="190" r="28" fill="#e0b43d"/>
+  <rect x="270" y="178" width="82" height="12" rx="6" fill="#eaf2ee"/>
+  <rect x="205" y="280" width="140" height="16" rx="8" fill="#eaf2ee"/>
+  <rect x="205" y="328" width="110" height="16" rx="8" fill="#93b4a9"/>
+  <rect x="205" y="376" width="128" height="16" rx="8" fill="#93b4a9"/>
+  <rect x="205" y="424" width="96" height="16" rx="8" fill="#93b4a9"/>
+  <path d="M485 548 C570 428 645 520 725 410 C790 320 880 405 1020 255" fill="none" stroke="#126149" stroke-width="16" stroke-linecap="round"/>
+  <rect x="485" y="220" width="120" height="18" rx="9" fill="#cbdad2"/>
+  <rect x="485" y="252" width="190" height="24" rx="12" fill="#126149"/>
+  <rect x="840" y="220" width="90" height="18" rx="9" fill="#cbdad2"/>
+  <rect x="840" y="252" width="160" height="24" rx="12" fill="#e0b43d"/>
+</svg>
