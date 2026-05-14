@@ -15,6 +15,7 @@ export class SessionStore {
   readonly user = signal<User | null>(null);
   readonly organization = signal<Organization | null>(null);
   readonly isAuthed = computed(() => Boolean(this.token() && this.user() && this.organization()));
+  readonly canManage = computed(() => ['Owner', 'Admin'].includes(this.organization()?.role ?? ''));
 
   restore(): void {
     if (!this.token() || this.user()) return;

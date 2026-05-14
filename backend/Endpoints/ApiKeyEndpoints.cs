@@ -1,5 +1,6 @@
 using SaaS.Api.Contracts;
 using SaaS.Api.Persistence;
+using SaaS.Api.Persistence.Postgres;
 using SaaS.Api.Security;
 using SaaS.Api.Services;
 
@@ -32,7 +33,7 @@ public static class ApiKeyEndpoints
         return Results.Ok(keys);
     }
 
-    private static IResult Create(HttpContext http, CreateApiKeyRequest request, PlatformStore store, ApiKeyService keys)
+    private static async Task<IResult> Create(HttpContext http, CreateApiKeyRequest request, PlatformStore store, ApiKeyService keys, PostgresProjectionService postgres)
     {
         var auth = CurrentUser.From(http, store);
         if (auth is null) return Results.Unauthorized();
@@ -40,11 +41,12 @@ public static class ApiKeyEndpoints
 
         var created = keys.Create(auth.Organization.Id, request.Name);
         store.ApiKeys[created.Record.Id] = created.Record;
+        await postgres.SaveSnapshotAsync(store, http.RequestAborted);
 
         return Results.Ok(new CreatedApiKeyDto(ApiKeyDto.From(created.Record), created.PlainTextKey));
     }
 
-    private static IResult Revoke(HttpContext http, Guid id, PlatformStore store)
+    private static async Task<IResult> Revoke(HttpContext http, Guid id, PlatformStore store, PostgresProjectionService postgres)
     {
         var auth = CurrentUser.From(http, store);
         if (auth is null) return Results.Unauthorized();
@@ -52,6 +54,7 @@ public static class ApiKeyEndpoints
         if (!store.ApiKeys.TryGetValue(id, out var key) || key.OrganizationId != auth.Organization.Id) return Results.NotFound();
 
         store.ApiKeys[id] = key with { RevokedAt = DateTimeOffset.UtcNow };
+        await postgres.SaveSnapshotAsync(store, http.RequestAborted);
         return Results.NoContent();
     }
 }

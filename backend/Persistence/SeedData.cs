@@ -9,14 +9,23 @@ public static class SeedData
     {
         if (!store.Users.IsEmpty) return;
 
-        var user = new User(Guid.NewGuid(), "owner@example.com", "Demo Owner", PasswordHasher.Hash("ChangeMe123!"), DateTimeOffset.UtcNow);
         var organization = new Organization(Guid.NewGuid(), "Acme Cloud", "pro", "cus_demo", null, DateTimeOffset.UtcNow);
-        var membership = new Membership(Guid.NewGuid(), user.Id, organization.Id, Role.Owner, DateTimeOffset.UtcNow);
+        var users = new[]
+        {
+            new { User = new User(Guid.NewGuid(), "owner@example.com", "Demo Owner", PasswordHasher.Hash("ChangeMe123!"), DateTimeOffset.UtcNow), Role = Role.Owner },
+            new { User = new User(Guid.NewGuid(), "admin@example.com", "Demo Admin", PasswordHasher.Hash("ChangeMe123!"), DateTimeOffset.UtcNow), Role = Role.Admin },
+            new { User = new User(Guid.NewGuid(), "member@example.com", "Demo Member", PasswordHasher.Hash("ChangeMe123!"), DateTimeOffset.UtcNow), Role = Role.Member }
+        };
 
-        store.Users[user.Id] = user;
-        store.UsersByEmail[user.Email] = user.Id;
         store.Organizations[organization.Id] = organization;
-        store.Memberships[membership.Id] = membership;
+        foreach (var demo in users)
+        {
+            store.Users[demo.User.Id] = demo.User;
+            store.UsersByEmail[demo.User.Email] = demo.User.Id;
+            var membership = new Membership(Guid.NewGuid(), demo.User.Id, organization.Id, demo.Role, DateTimeOffset.UtcNow);
+            store.Memberships[membership.Id] = membership;
+        }
+
         store.Subscriptions[organization.Id] = new Subscription(Guid.NewGuid(), organization.Id, "pro", "active", "sub_demo", DateTimeOffset.UtcNow.AddDays(18), DateTimeOffset.UtcNow);
 
         for (var i = 13; i >= 0; i--)

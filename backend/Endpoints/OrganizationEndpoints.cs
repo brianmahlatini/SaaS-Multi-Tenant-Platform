@@ -1,6 +1,7 @@
 using SaaS.Api.Contracts;
 using SaaS.Api.Domain;
 using SaaS.Api.Persistence;
+using SaaS.Api.Persistence.Postgres;
 using SaaS.Api.Security;
 
 namespace SaaS.Api.Endpoints;
@@ -35,7 +36,7 @@ public static class OrganizationEndpoints
         return Results.Ok(organizations);
     }
 
-    private static IResult Create(HttpContext http, CreateOrganizationRequest request, PlatformStore store, TokenService tokens)
+    private static async Task<IResult> Create(HttpContext http, CreateOrganizationRequest request, PlatformStore store, TokenService tokens, PostgresProjectionService postgres)
     {
         var auth = CurrentUser.From(http, store);
         if (auth is null) return Results.Unauthorized();
@@ -47,6 +48,7 @@ public static class OrganizationEndpoints
         store.Organizations[organization.Id] = organization;
         store.Memberships[membership.Id] = membership;
         store.Subscriptions[organization.Id] = new Subscription(Guid.NewGuid(), organization.Id, "free", "active", null, null, DateTimeOffset.UtcNow);
+        await postgres.SaveSnapshotAsync(store, http.RequestAborted);
 
         return Results.Ok(SessionResponse.From(auth.User, organization, tokens.CreateToken(auth.User, organization, Role.Owner), Role.Owner));
     }

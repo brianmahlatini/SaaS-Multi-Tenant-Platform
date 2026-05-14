@@ -1,10 +1,12 @@
 <section class="panel">
   <div class="panel-heading">
     <h2>API keys</h2>
-    <form [formGroup]="apiKeyForm" (ngSubmit)="createApiKey()" class="inline-form">
-      <input type="text" formControlName="name" placeholder="Key name">
-      <button type="submit">Create key</button>
-    </form>
+    @if (session.canManage()) {
+      <form [formGroup]="apiKeyForm" (ngSubmit)="createApiKey()" class="inline-form">
+        <input type="text" formControlName="name" placeholder="Key name">
+        <button type="submit">Create key</button>
+      </form>
+    }
   </div>
 
   @if (dashboard.oneTimeKey()) {
@@ -20,7 +22,9 @@
         <strong>{{ key.name }}</strong>
         <code>{{ key.prefix }}...</code>
         <span>{{ key.revokedAt ? 'Revoked' : 'Active' }}</span>
-        <button type="button" [disabled]="!!key.revokedAt" (click)="revokeKey(key)">Revoke</button>
+        @if (session.canManage()) {
+          <button type="button" [disabled]="!!key.revokedAt" (click)="revokeKey(key)">Revoke</button>
+        }
       </div>
     }
   </div>

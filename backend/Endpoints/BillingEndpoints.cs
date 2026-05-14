@@ -1,6 +1,7 @@
 using System.Text.Json;
 using SaaS.Api.Contracts;
 using SaaS.Api.Persistence;
+using SaaS.Api.Persistence.Postgres;
 using SaaS.Api.Security;
 using SaaS.Api.Services;
 
@@ -39,13 +40,14 @@ public static class BillingEndpoints
             : Results.Ok(checkout);
     }
 
-    private static async Task<IResult> Webhook(HttpContext http, PlatformStore store, StripeWebhookService webhooks)
+    private static async Task<IResult> Webhook(HttpContext http, PlatformStore store, StripeWebhookService webhooks, PostgresProjectionService postgres)
     {
         using var reader = new StreamReader(http.Request.Body);
         var payload = await reader.ReadToEndAsync();
         using var doc = JsonDocument.Parse(payload);
 
         var result = webhooks.Apply(doc.RootElement, store);
+        await postgres.SaveSnapshotAsync(store, http.RequestAborted);
         return result is WebhookResult.Duplicate
             ? Results.Ok(new { received = true, duplicate = true })
             : Results.Ok(new { received = true });

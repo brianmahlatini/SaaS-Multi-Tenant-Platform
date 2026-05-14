@@ -6,6 +6,8 @@ using SaaS.Api.Domain;
 using SaaS.Api.Infrastructure.Caching;
 using SaaS.Api.Infrastructure.Messaging;
 using SaaS.Api.Persistence;
+using SaaS.Api.Persistence.Mongo;
+using SaaS.Api.Persistence.Postgres;
 using SaaS.Api.Realtime;
 using SaaS.Api.Security;
 using SaaS.Api.Services;
@@ -71,6 +73,8 @@ public static class UsageEndpoints
         ApiKeyService keys,
         IDistributedCache cache,
         IEventBus events,
+        MongoUsageService mongo,
+        PostgresProjectionService postgres,
         IHubContext<RealtimeHub> hub)
     {
         var auth = keys.Authenticate(http, store);
@@ -89,7 +93,11 @@ public static class UsageEndpoints
         store.UsageEvents[usage.Id] = usage;
         store.ApiKeys[auth.Key.Id] = auth.Key with { LastUsedAt = DateTimeOffset.UtcNow };
         await cache.RemoveAsync(CacheKeys.UsageSummary(auth.Key.OrganizationId), http.RequestAborted);
-        await events.PublishAsync(new PlatformEvent("usage.ingested", auth.Key.OrganizationId, UsageEventDto.From(usage), DateTimeOffset.UtcNow), http.RequestAborted);
+        var platformEvent = new PlatformEvent("usage.ingested", auth.Key.OrganizationId, UsageEventDto.From(usage), DateTimeOffset.UtcNow);
+        await postgres.SaveSnapshotAsync(store, http.RequestAborted);
+        await mongo.StoreUsageAsync(usage, http.RequestAborted);
+        await mongo.StoreAuditAsync(platformEvent, http.RequestAborted);
+        await events.PublishAsync(platformEvent, http.RequestAborted);
         await hub.Clients.Group(RealtimeHub.OrganizationGroup(auth.Key.OrganizationId)).SendAsync("usageUpdated", UsageEventDto.From(usage), http.RequestAborted);
 
         return Results.Accepted($"/api/usage/{usage.Id}", UsageEventDto.From(usage));

@@ -22,7 +22,7 @@ A full-stack SaaS platform starter built with **Angular** and **ASP.NET Core/C#*
 - ASP.NET Core rate limiting for dashboard and ingest APIs
 - Structured request logging middleware
 - Lightweight monitoring metrics endpoint
-- Docker Compose services for backend, frontend, Redis, and RabbitMQ
+- Docker Compose services for backend, frontend, PostgreSQL, MongoDB, Redis, and RabbitMQ
 
 ## Screenshots
 
@@ -82,6 +82,9 @@ A full-stack SaaS platform starter built with **Angular** and **ASP.NET Core/C#*
 - Docker
 - Docker Compose
 - Redis
+- PostgreSQL
+- MongoDB
+- Prisma schema/tooling
 - RabbitMQ with management UI
 - Stripe Billing/Checkout-compatible boundary
 
@@ -166,6 +169,10 @@ A full-stack SaaS platform starter built with **Angular** and **ASP.NET Core/C#*
 |   |-- angular.json
 |   |-- package-lock.json
 |   `-- package.json
+|-- database/
+|   |-- package.json
+|   `-- prisma/
+|       `-- schema.prisma
 |-- docs/
 |   `-- screenshots/
 |-- .env.example
@@ -195,6 +202,27 @@ Infrastructure code is separated:
 - `Messaging` contains RabbitMQ event publishing and consumption.
 - `Monitoring` contains request logging and in-process metrics.
 - `Realtime` contains the SignalR hub.
+- `Persistence/Postgres` contains the EF Core PostgreSQL context and projection service.
+- `Persistence/Mongo` contains MongoDB usage and audit document storage.
+
+### Database Split
+
+PostgreSQL is used for transactional SaaS data:
+
+- users
+- organizations
+- memberships and roles
+- invitations
+- subscriptions
+- API keys
+- processed Stripe webhook event IDs
+
+MongoDB is used where document storage is a better fit:
+
+- high-volume usage event documents
+- audit/event documents emitted by the platform
+
+Prisma is included under `database/prisma/schema.prisma` as a schema/tooling contract for the PostgreSQL model. The ASP.NET Core runtime uses EF Core/Npgsql because Prisma is a Node.js ORM and is not the runtime data layer for this C# backend.
 
 ## Frontend Architecture
 
@@ -235,7 +263,7 @@ Feature components stay focused on UI and forms:
 - .NET SDK 10 or newer
 - Node.js 22 or newer
 - npm
-- Docker Desktop, optional for Redis/RabbitMQ stack
+- Docker Desktop, optional for PostgreSQL/MongoDB/Redis/RabbitMQ stack
 - Stripe account, optional for real billing integration
 
 ### Clone
@@ -271,7 +299,7 @@ Stripe__ProPriceId=price_pro_replace_me
 Stripe__EnterprisePriceId=price_enterprise_replace_me
 ```
 
-The backend falls back to in-memory distributed cache when no Redis connection string is configured. RabbitMQ is disabled by default in `appsettings.json` and enabled in Docker Compose.
+The backend falls back to the in-memory demo store when no PostgreSQL connection string is configured, and it falls back to in-memory distributed cache when no Redis connection string is configured. MongoDB writes are skipped when no MongoDB connection string is configured. RabbitMQ is disabled by default in `appsettings.json` and enabled in Docker Compose.
 
 ### Install Dependencies
 
@@ -327,10 +355,13 @@ Services:
 ```text
 Frontend: http://localhost:4200
 Backend: http://localhost:5000
+PostgreSQL: localhost:5432
+MongoDB: localhost:27017
 Redis: localhost:6379
 RabbitMQ: localhost:5672
 RabbitMQ Management UI: http://localhost:15672
 RabbitMQ login: guest / guest
+PostgreSQL login: saas / saas_password
 ```
 
 Stop services:
@@ -339,13 +370,25 @@ Stop services:
 docker compose down
 ```
 
-## Demo Account
+## Demo Accounts
 
 ```text
+Owner
 Email: owner@example.com
 Password: ChangeMe123!
+Access: Full workspace access, billing, team, API keys, usage
+
+Admin
+Email: admin@example.com
+Password: ChangeMe123!
+Access: Full operational access for team, API keys, usage, and billing actions
+
+Member
+Email: member@example.com
+Password: ChangeMe123!
+Access: Read/monitor workspace data; restricted from owner/admin actions
+
 Organization: Acme Cloud
-Role: Owner
 Plan: Pro
 ```
 
@@ -420,6 +463,18 @@ curl -X POST http://localhost:5000/api/usage/ingest \
 ### Redis Caching
 
 `UsageEndpoints` caches usage summaries with `IDistributedCache`. When usage is ingested, the organization usage cache key is invalidated. If Redis is configured, the cache is distributed. If not, the app uses in-memory distributed cache for local development.
+
+### PostgreSQL
+
+`PlatformDbContext` defines relational tables for the core SaaS model. `PostgresProjectionService` syncs the running store into PostgreSQL and can hydrate the app from PostgreSQL when a database already contains data. This keeps local demo mode simple while providing a real PostgreSQL persistence path.
+
+### MongoDB
+
+`MongoUsageService` writes usage events and audit events as documents. This keeps high-volume event-style data separate from transactional account and billing records.
+
+### Prisma
+
+`database/prisma/schema.prisma` mirrors the PostgreSQL model as a Prisma schema. It is included for schema review, Prisma tooling, and teams that want a Node-based data tooling workflow alongside the ASP.NET backend. The ASP.NET runtime still uses EF Core/Npgsql.
 
 ### Background Jobs
 
@@ -504,7 +559,7 @@ dotnet run --project backend/SaaS.Api.csproj --launch-profile http
 
 ## Current Demo Limits
 
-- Main business data still uses the demo in-memory `PlatformStore`.
+- `PlatformStore` is still the in-process working projection; PostgreSQL is used as the durable relational projection when configured.
 - Invitations are queued and logged but not sent through a real email provider.
 - Checkout is integration-shaped but does not call Stripe.net yet.
 - Webhook signature verification is a production next step.
@@ -512,8 +567,8 @@ dotnet run --project backend/SaaS.Api.csproj --launch-profile http
 
 ## Production Roadmap
 
-- Replace `PlatformStore` with PostgreSQL and Entity Framework Core.
-- Add database migrations and repository/query abstractions.
+- Replace the projection-style `PlatformStore` bridge with direct repository/query services over PostgreSQL.
+- Add EF Core migrations instead of `EnsureCreated`.
 - Add ASP.NET Core authentication and authorization middleware policies.
 - Add refresh tokens or secure short-lived session handling.
 - Add real email delivery for invitations.

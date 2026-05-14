@@ -3,10 +3,13 @@ using SaaS.Api.Infrastructure.Jobs;
 using SaaS.Api.Infrastructure.Messaging;
 using SaaS.Api.Infrastructure.Monitoring;
 using SaaS.Api.Persistence;
+using SaaS.Api.Persistence.Mongo;
+using SaaS.Api.Persistence.Postgres;
 using SaaS.Api.Realtime;
 using SaaS.Api.Security;
 using SaaS.Api.Services;
 using System.Threading.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,7 +61,16 @@ else
 }
 
 builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMQ"));
+builder.Services.Configure<MongoOptions>(builder.Configuration.GetSection("MongoDB"));
+var postgresConnection = builder.Configuration.GetConnectionString("Postgres");
+if (!string.IsNullOrWhiteSpace(postgresConnection))
+{
+    builder.Services.AddDbContext<PlatformDbContext>(options => options.UseNpgsql(postgresConnection));
+}
+
 builder.Services.AddSingleton<PlatformStore>();
+builder.Services.AddSingleton<PostgresProjectionService>();
+builder.Services.AddSingleton<MongoUsageService>();
 builder.Services.AddSingleton<TokenService>();
 builder.Services.AddSingleton<ApiKeyService>();
 builder.Services.AddSingleton<BillingService>();
@@ -91,5 +103,6 @@ app.MapUsageEndpoints();
 app.MapHub<RealtimeHub>("/hubs/realtime");
 
 SeedData.AddDemoTenant(app.Services.GetRequiredService<PlatformStore>());
+await app.Services.GetRequiredService<PostgresProjectionService>().TryInitializeAsync(app.Services.GetRequiredService<PlatformStore>());
 
 app.Run();

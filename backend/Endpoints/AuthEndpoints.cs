@@ -1,6 +1,7 @@
 using SaaS.Api.Contracts;
 using SaaS.Api.Domain;
 using SaaS.Api.Persistence;
+using SaaS.Api.Persistence.Postgres;
 using SaaS.Api.Security;
 
 namespace SaaS.Api.Endpoints;
@@ -18,7 +19,7 @@ public static class AuthEndpoints
         return app;
     }
 
-    private static IResult Register(RegisterRequest request, PlatformStore store, TokenService tokens)
+    private static async Task<IResult> Register(RegisterRequest request, PlatformStore store, TokenService tokens, PostgresProjectionService postgres)
     {
         var email = request.Email.Trim().ToLowerInvariant();
         if (string.IsNullOrWhiteSpace(email) || request.Password.Length < 8 || string.IsNullOrWhiteSpace(request.OrganizationName))
@@ -41,6 +42,7 @@ public static class AuthEndpoints
         store.Organizations[organization.Id] = organization;
         store.Memberships[membership.Id] = membership;
         store.Subscriptions[organization.Id] = subscription;
+        await postgres.SaveSnapshotAsync(store);
 
         return Results.Ok(SessionResponse.From(user, organization, tokens.CreateToken(user, organization, membership.Role), membership.Role));
     }

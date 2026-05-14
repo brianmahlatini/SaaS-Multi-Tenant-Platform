@@ -4,6 +4,7 @@ TestResults/
 .vs/
 .vscode/
 node_modules/
+database/node_modules/
 dist/
 .angular/
 .env

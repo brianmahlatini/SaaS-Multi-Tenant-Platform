@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  Owner
+  Admin
+  Member
+}
+
+model User {
+  id           String       @id @db.Uuid
+  email        String       @unique
+  fullName     String
+  passwordHash String
+  createdAt    DateTime
+  memberships  Membership[]
+}
+
+model Organization {
+  id                   String         @id @db.Uuid
+  name                 String
+  plan                 String
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  createdAt            DateTime
+  memberships          Membership[]
+  invitations          Invitation[]
+  subscription         Subscription?
+  apiKeys              ApiKey[]
+}
+
+model Membership {
+  id             String       @id @db.Uuid
+  userId         String       @db.Uuid
+  organizationId String       @db.Uuid
+  role           Role
+  createdAt      DateTime
+  user           User         @relation(fields: [userId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([userId, organizationId])
+}
+
+model Invitation {
+  id             String       @id @db.Uuid
+  organizationId String       @db.Uuid
+  email          String
+  role           Role
+  status         String
+  createdAt      DateTime
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+model Subscription {
+  id                   String       @id @db.Uuid
+  organizationId       String       @unique @db.Uuid
+  plan                 String
+  status               String
+  stripeSubscriptionId String?
+  currentPeriodEnd     DateTime?
+  updatedAt            DateTime
+  organization         Organization @relation(fields: [organizationId], references: [id])
+}
+
+model ApiKey {
+  id             String       @id @db.Uuid
+  organizationId String       @db.Uuid
+  name           String
+  prefix         String
+  hash           String
+  createdAt      DateTime
+  lastUsedAt     DateTime?
+  revokedAt      DateTime?
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+model ProcessedStripeEvent {
+  eventId     String   @id
+  processedAt DateTime
+}

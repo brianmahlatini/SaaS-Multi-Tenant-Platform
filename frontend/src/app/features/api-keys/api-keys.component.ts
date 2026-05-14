@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DashboardStore } from '../../core/dashboard.store';
 import { ApiKey } from '../../core/models';
+import { SessionStore } from '../../core/session.store';
 
 @Component({
   selector: 'app-api-keys',
@@ -10,6 +11,7 @@ import { ApiKey } from '../../core/models';
 })
 export class ApiKeysComponent {
   readonly dashboard = inject(DashboardStore);
+  readonly session = inject(SessionStore);
   private readonly fb = inject(FormBuilder);
 
   readonly apiKeyForm = this.fb.nonNullable.group({
