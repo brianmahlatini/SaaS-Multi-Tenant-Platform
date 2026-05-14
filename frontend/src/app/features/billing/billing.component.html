@@ -1,0 +1,16 @@
+<section class="pricing">
+  @for (plan of plans; track plan) {
+    <article>
+      <h2>{{ plan | titlecase }}</h2>
+      <p>{{ plan === 'free' ? '$0' : plan === 'pro' ? '$49' : '$199' }} <span>/ month</span></p>
+      <ul>
+        <li>Organization-scoped dashboard</li>
+        <li>Team role management</li>
+        <li>{{ plan === 'free' ? 'Basic usage history' : 'Expanded usage limits' }}</li>
+      </ul>
+      @if (plan !== 'free') {
+        <button type="button" (click)="dashboard.createCheckout(plan)">Checkout</button>
+      }
+    </article>
+  }
+</section>

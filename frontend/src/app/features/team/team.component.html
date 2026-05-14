@@ -1,0 +1,23 @@
+<section class="panel">
+  <div class="panel-heading">
+    <h2>Team</h2>
+    <form [formGroup]="inviteForm" (ngSubmit)="invite()" class="inline-form">
+      <input type="email" formControlName="email" placeholder="teammate@example.com">
+      <select formControlName="role">
+        <option>Admin</option>
+        <option>Member</option>
+      </select>
+      <button type="submit">Invite</button>
+    </form>
+  </div>
+  <div class="table">
+    @for (member of dashboard.team(); track member.id) {
+      <div class="table-row">
+        <strong>{{ member.fullName }}</strong>
+        <span>{{ member.email }}</span>
+        <span>{{ member.role }}</span>
+        <span>{{ member.createdAt | date:'mediumDate' }}</span>
+      </div>
+    }
+  </div>
+</section>

@@ -1,0 +1,40 @@
+<main class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">S</span>
+      <div>
+        <strong>SaaS Platform</strong>
+        <small>{{ session.organization()?.name }}</small>
+      </div>
+    </div>
+
+    <nav aria-label="Dashboard">
+      <a routerLink="/overview" routerLinkActive="active">Overview</a>
+      <a routerLink="/usage" routerLinkActive="active">Usage</a>
+      <a routerLink="/billing" routerLinkActive="active">Billing</a>
+      <a routerLink="/team" routerLinkActive="active">Team</a>
+      <a routerLink="/api-keys" routerLinkActive="active">API Keys</a>
+    </nav>
+
+    <button type="button" class="ghost" (click)="session.logout()">Sign out</button>
+  </aside>
+
+  <section class="workspace">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">{{ session.organization()?.role }} workspace</p>
+        <h1>{{ session.organization()?.name }}</h1>
+      </div>
+      <div class="profile">
+        <span>{{ session.user()?.fullName }}</span>
+        <strong>{{ session.organization()?.plan }}</strong>
+      </div>
+    </header>
+
+    @if (dashboard.message()) {
+      <p class="notice">{{ dashboard.message() }}</p>
+    }
+
+    <router-outlet />
+  </section>
+</main>

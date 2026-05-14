@@ -1,0 +1,17 @@
+<section class="panel">
+  <div class="panel-heading">
+    <h2>Recent API activity</h2>
+    <button type="button" (click)="dashboard.sendSampleUsage()">Send sample</button>
+  </div>
+  <div class="table">
+    @for (event of dashboard.usage()?.recentEvents ?? []; track event.id) {
+      <div class="table-row">
+        <span>{{ event.method }}</span>
+        <strong>{{ event.path }}</strong>
+        <span>{{ event.statusCode }}</span>
+        <span>{{ event.units }} units</span>
+        <span>{{ event.occurredAt | date:'short' }}</span>
+      </div>
+    }
+  </div>
+</section>

@@ -1,0 +1,45 @@
+<section class="metrics">
+  <article>
+    <span>Total units</span>
+    <strong>{{ dashboard.usage()?.totalUnits ?? 0 }}</strong>
+  </article>
+  <article>
+    <span>Requests</span>
+    <strong>{{ dashboard.usage()?.totalRequests ?? 0 }}</strong>
+  </article>
+  <article>
+    <span>Errors</span>
+    <strong>{{ dashboard.usage()?.errorCount ?? 0 }}</strong>
+  </article>
+  <article>
+    <span>Team members</span>
+    <strong>{{ dashboard.team().length }}</strong>
+  </article>
+</section>
+
+<section class="split">
+  <div class="panel">
+    <div class="panel-heading">
+      <h2>Usage trend</h2>
+      <button type="button" (click)="dashboard.sendSampleUsage()">Send sample</button>
+    </div>
+    <div class="bars">
+      @for (point of dashboard.usage()?.daily ?? []; track point.date) {
+        <div class="bar-row">
+          <span>{{ point.date | date:'MMM d' }}</span>
+          <div><i [style.width.%]="point.units / dashboard.maxDailyUnits() * 100"></i></div>
+          <strong>{{ point.units }}</strong>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-heading">
+      <h2>Current subscription</h2>
+      <span class="status">{{ dashboard.subscription()?.status }}</span>
+    </div>
+    <p class="plan-name">{{ dashboard.subscription()?.plan | titlecase }}</p>
+    <p class="muted">Stripe Checkout is used for upgrades, with webhook idempotency handled by the backend.</p>
+  </div>
+</section>

@@ -1,0 +1,52 @@
+using SaaS.Api.Contracts;
+using SaaS.Api.Domain;
+using SaaS.Api.Persistence;
+using SaaS.Api.Security;
+
+namespace SaaS.Api.Endpoints;
+
+public static class TeamEndpoints
+{
+    public static IEndpointRouteBuilder MapTeamEndpoints(this IEndpointRouteBuilder app)
+    {
+        var group = app.MapGroup("/api/users").WithTags("Team");
+
+        group.MapGet("/", List);
+        group.MapPost("/invite", Invite);
+
+        return app;
+    }
+
+    private static IResult List(HttpContext http, PlatformStore store)
+    {
+        var auth = CurrentUser.From(http, store);
+        if (auth is null) return Results.Unauthorized();
+
+        var members = store.Memberships.Values
+            .Where(m => m.OrganizationId == auth.Organization.Id)
+            .Select(m =>
+            {
+                var user = store.Users[m.UserId];
+                return new TeamMemberDto(user.Id, user.Email, user.FullName, m.Role.ToString(), m.CreatedAt);
+            })
+            .OrderBy(m => m.Email)
+            .ToList();
+
+        return Results.Ok(members);
+    }
+
+    private static IResult Invite(HttpContext http, InviteUserRequest request, PlatformStore store)
+    {
+        var auth = CurrentUser.From(http, store);
+        if (auth is null) return Results.Unauthorized();
+        if (!auth.CanManage()) return Results.Forbid();
+
+        var email = request.Email.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(email)) return Results.BadRequest(new { message = "Email is required." });
+
+        var invitation = new Invitation(Guid.NewGuid(), auth.Organization.Id, email, request.Role, "pending", DateTimeOffset.UtcNow);
+        store.Invitations[invitation.Id] = invitation;
+
+        return Results.Ok(new InvitationDto(invitation.Id, invitation.Email, invitation.Role.ToString(), invitation.Status, invitation.CreatedAt));
+    }
+}

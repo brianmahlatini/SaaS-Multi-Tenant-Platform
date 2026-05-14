@@ -1,27 +1,27 @@
 # SaaS Multi-Tenant Platform
 
-A full-stack SaaS starter built with **Angular** on the frontend and **ASP.NET Core/C#** on the backend. The app demonstrates the core building blocks of a production SaaS product: organization-based multi-tenancy, JWT authentication, role-aware team management, subscription billing, API key generation, and API usage analytics.
+A full-stack SaaS platform starter built with **Angular** and **ASP.NET Core/C#**. The project is separated into a frontend application and backend API, with a structure that keeps routing, components, services, endpoint groups, contracts, domain models, and security concerns out of one-file implementations.
 
-The repository is intentionally split into separate frontend and backend projects so each side can be developed, deployed, and scaled independently.
+The app demonstrates common SaaS foundations: organization-based multi-tenancy, JWT authentication, role-aware access checks, team invitations, Stripe Checkout-style subscriptions, hashed API keys, and usage analytics.
 
 ![Operations overview](docs/screenshots/overview.png)
 
-## Features
+## Highlights
 
-- Multi-tenant organizations with organization-scoped dashboard APIs
-- Demo owner account with seeded organization and usage history
+- Clean frontend/backend separation
+- Angular feature routes instead of one giant component
+- Shared Angular API client, session store, and dashboard store
+- ASP.NET Core endpoint groups instead of one giant `Program.cs`
+- Separate backend contracts, domain records, services, persistence, and security helpers
+- Organization-scoped dashboard APIs using `X-Organization-ID`
 - JWT login, registration, and session restore
-- Role-aware access checks for Owner, Admin, and Member-style actions
-- Team member listing and invitation workflow placeholder
-- Stripe Checkout-shaped subscription upgrade flow using Stripe Price IDs
-- Stripe webhook endpoint with idempotent event processing
-- Free, Pro, and Enterprise billing plan UI
-- Secure API key generation with one-time secret display
-- SHA-256 API key storage, revocation, and last-used tracking
-- API usage ingestion endpoint using `X-API-Key`
-- Usage summary metrics and recent API activity table
-- Docker Compose setup for running frontend and backend together
-- Detailed `.env.example` for local configuration
+- Owner/Admin checks for privileged actions
+- Stripe Checkout-shaped billing using Price IDs
+- Idempotent Stripe webhook processing
+- One-time API key display with SHA-256 storage
+- Usage ingestion with `X-API-Key`
+- Docker Compose support
+- README screenshots stored in `docs/screenshots`
 
 ## Screenshots
 
@@ -55,68 +55,111 @@ The repository is intentionally split into separate frontend and backend project
 
 - Angular
 - TypeScript
-- RxJS
+- Angular Router
 - Angular Reactive Forms
 - Angular HttpClient
+- Signals for local UI/application state
 - CSS
 
 ### Backend
 
 - ASP.NET Core Web API
 - C#
-- Minimal APIs
-- JWT tokens
+- Minimal API endpoint groups
+- JWT token generation and validation
 - PBKDF2 password hashing
 - SHA-256 API key hashing
-- In-memory data store for local demo behavior
+- In-memory store for demo/local development
 
-### Tooling and Infrastructure
+### Infrastructure
 
-- .NET SDK
-- Node.js and npm
 - Docker
 - Docker Compose
-- Stripe Checkout-compatible billing design
+- Stripe Billing/Checkout-compatible integration shape
 
-## Project Folder Structure
+## Senior-Level Project Structure
 
 ```text
 .
 ├── backend/
+│   ├── Contracts/
+│   │   ├── Requests.cs              # Request DTOs for API input
+│   │   └── Responses.cs             # Response DTOs sent to the frontend
+│   ├── Domain/
+│   │   └── Entities.cs              # Core SaaS domain records and enums
+│   ├── Endpoints/
+│   │   ├── ApiKeyEndpoints.cs       # API key list/create/revoke routes
+│   │   ├── AuthEndpoints.cs         # Register/login/me routes
+│   │   ├── BillingEndpoints.cs      # Subscription, checkout, webhook routes
+│   │   ├── HealthEndpoints.cs       # Health check route
+│   │   ├── OrganizationEndpoints.cs # Organization routes
+│   │   ├── TeamEndpoints.cs         # Member and invite routes
+│   │   └── UsageEndpoints.cs        # Usage summary and ingest routes
+│   ├── Persistence/
+│   │   ├── PlatformStore.cs         # Demo in-memory store
+│   │   └── SeedData.cs              # Demo tenant/user/usage seed data
+│   ├── Security/
+│   │   ├── CurrentUser.cs           # Request auth context resolver
+│   │   ├── PasswordHasher.cs        # PBKDF2 password hashing
+│   │   └── TokenService.cs          # JWT create/validate service
+│   ├── Services/
+│   │   ├── ApiKeyService.cs         # API key generation/authentication
+│   │   ├── BillingService.cs        # Checkout-session boundary
+│   │   └── StripeWebhookService.cs  # Webhook event handling/idempotency
 │   ├── Properties/
 │   │   └── launchSettings.json
 │   ├── Dockerfile
-│   ├── Program.cs
+│   ├── Program.cs                   # Composition root only
 │   ├── SaaS.Api.csproj
 │   ├── appsettings.Development.json
 │   └── appsettings.json
-├── docs/
-│   └── screenshots/
-│       ├── api-keys.png
-│       ├── authentication.png
-│       ├── billing.png
-│       ├── overview.png
-│       ├── team.png
-│       └── usage.png
 ├── frontend/
 │   ├── public/
 │   │   └── dashboard-bg.svg
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── app.config.ts
+│   │   │   ├── core/
+│   │   │   │   ├── api-client.service.ts   # Typed HTTP boundary
+│   │   │   │   ├── dashboard.store.ts      # Dashboard data/actions
+│   │   │   │   ├── models.ts               # Shared frontend interfaces
+│   │   │   │   └── session.store.ts        # Auth/session state
+│   │   │   ├── features/
+│   │   │   │   ├── api-keys/
+│   │   │   │   │   ├── api-keys.component.html
+│   │   │   │   │   └── api-keys.component.ts
+│   │   │   │   ├── auth/
+│   │   │   │   │   ├── auth.component.html
+│   │   │   │   │   └── auth.component.ts
+│   │   │   │   ├── billing/
+│   │   │   │   │   ├── billing.component.html
+│   │   │   │   │   └── billing.component.ts
+│   │   │   │   ├── dashboard/
+│   │   │   │   │   ├── dashboard.component.html
+│   │   │   │   │   └── dashboard.component.ts
+│   │   │   │   ├── overview/
+│   │   │   │   │   ├── overview.component.html
+│   │   │   │   │   └── overview.component.ts
+│   │   │   │   ├── team/
+│   │   │   │   │   ├── team.component.html
+│   │   │   │   │   └── team.component.ts
+│   │   │   │   └── usage/
+│   │   │   │       ├── usage.component.html
+│   │   │   │       └── usage.component.ts
+│   │   │   ├── app.config.ts        # App providers
 │   │   │   ├── app.css
-│   │   │   ├── app.html
-│   │   │   └── app.ts
+│   │   │   ├── app.html             # Router outlet only
+│   │   │   ├── app.routes.ts        # Route configuration
+│   │   │   └── app.ts               # Root shell component
 │   │   ├── index.html
 │   │   ├── main.ts
-│   │   └── styles.css
+│   │   └── styles.css               # Shared app styling
 │   ├── Dockerfile
 │   ├── angular.json
 │   ├── package-lock.json
 │   ├── package.json
-│   ├── tsconfig.app.json
-│   ├── tsconfig.json
-│   └── tsconfig.spec.json
+│   └── tsconfig.json
+├── docs/
+│   └── screenshots/
 ├── .env.example
 ├── .gitignore
 ├── docker-compose.yml
@@ -126,17 +169,61 @@ The repository is intentionally split into separate frontend and backend project
 
 ## Architecture
 
-The backend exposes REST-style API endpoints under `/api`. Dashboard endpoints use JWT Bearer authentication and are scoped to the active organization through the `X-Organization-ID` header.
+### Backend Architecture
 
-API usage ingestion is intentionally separate from dashboard authentication. External clients submit usage events with an API key using the `X-API-Key` header.
+`Program.cs` is now a composition root. It configures services, middleware, endpoint groups, and seed data only.
 
-The frontend stores the JWT in `localStorage`, restores the current user session on page load, and sends authenticated requests to the ASP.NET Core API. The dashboard is organized into five main views:
+Endpoint files own HTTP route mapping and request/response orchestration:
 
-- **Overview**: usage totals, requests, errors, team count, usage trend, and subscription status
-- **Usage**: recent API activity and sample usage ingestion
-- **Billing**: Free, Pro, and Enterprise plans with Checkout buttons
-- **Team**: current members and invitation form
-- **API Keys**: key generation, one-time secret display, and revocation
+- `AuthEndpoints` handles register, login, and session restore.
+- `OrganizationEndpoints` handles tenant lookup and creation.
+- `TeamEndpoints` handles members and invitations.
+- `BillingEndpoints` handles subscription state, checkout creation, and webhooks.
+- `ApiKeyEndpoints` handles API key lifecycle.
+- `UsageEndpoints` handles usage analytics and ingestion.
+
+Business support code lives outside endpoint files:
+
+- `TokenService` creates and validates JWTs.
+- `CurrentUser` resolves the authenticated user and organization context from each request.
+- `PasswordHasher` handles password hashing and verification.
+- `ApiKeyService` generates API keys and authenticates usage-ingestion requests.
+- `BillingService` owns the Checkout Session boundary.
+- `StripeWebhookService` owns webhook event handling and idempotency.
+- `PlatformStore` is the current in-memory persistence layer.
+
+This structure makes it much easier to replace the demo store with Entity Framework Core later without rewriting the API surface.
+
+### Frontend Architecture
+
+The frontend is route-driven and split by feature.
+
+Routes:
+
+```text
+/auth
+/overview
+/usage
+/billing
+/team
+/api-keys
+```
+
+Core services:
+
+- `ApiClient` is the typed HTTP layer.
+- `SessionStore` owns login, registration, JWT storage, session restore, logout, and auth headers.
+- `DashboardStore` owns subscription, team, usage, API keys, checkout, invites, and sample usage actions.
+
+Feature components stay focused on UI and forms:
+
+- `AuthComponent`
+- `DashboardComponent`
+- `OverviewComponent`
+- `UsageComponent`
+- `BillingComponent`
+- `TeamComponent`
+- `ApiKeysComponent`
 
 ## Local Setup
 
@@ -148,16 +235,16 @@ The frontend stores the JWT in `localStorage`, restores the current user session
 - Docker Desktop, optional
 - Stripe account, optional for real billing integration
 
-### 1. Clone the Repository
+### Clone
 
 ```bash
 git clone https://github.com/brianmahlatini/SaaS-Multi-Tenant-Platform.git
 cd SaaS-Multi-Tenant-Platform
 ```
 
-### 2. Configure Environment
+### Configure Environment
 
-Copy the example env file if you want to use environment variables:
+Copy `.env.example` if you want environment-variable configuration:
 
 ```bash
 cp .env.example .env
@@ -174,15 +261,17 @@ Stripe__ProPriceId=price_pro_replace_me
 Stripe__EnterprisePriceId=price_enterprise_replace_me
 ```
 
-The app also includes development defaults in `backend/appsettings.json`, so it can run locally without Stripe credentials.
+The demo also has development defaults in `backend/appsettings.json`.
 
-### 3. Restore Backend Dependencies
+### Install Dependencies
+
+Backend:
 
 ```bash
 dotnet restore backend/SaaS.Api.csproj
 ```
 
-### 4. Install Frontend Dependencies
+Frontend:
 
 ```bash
 cd frontend
@@ -190,69 +279,48 @@ npm install
 cd ..
 ```
 
-### 5. Run the Backend
+### Run Locally
+
+Start the backend:
 
 ```bash
 dotnet run --project backend/SaaS.Api.csproj --launch-profile http
 ```
 
-The backend runs at:
-
-```text
-http://localhost:5000
-```
-
-Health check:
-
-```text
-http://localhost:5000/api/health
-```
-
-OpenAPI JSON:
-
-```text
-http://localhost:5000/openapi/v1.json
-```
-
-### 6. Run the Frontend
+Start the frontend:
 
 ```bash
 cd frontend
 npm start
 ```
 
-The frontend runs at:
+Open:
 
 ```text
-http://localhost:4200
+Frontend: http://localhost:4200
+Backend health: http://localhost:5000/api/health
+OpenAPI JSON: http://localhost:5000/openapi/v1.json
 ```
 
-## Demo Login
-
-The backend seeds a demo tenant on startup:
+## Demo Account
 
 ```text
 Email: owner@example.com
 Password: ChangeMe123!
 Organization: Acme Cloud
-Plan: Pro
 Role: Owner
+Plan: Pro
 ```
 
-## Docker Setup
+## Docker
 
-Run both applications together:
+Run both apps:
 
 ```bash
 docker compose up --build
 ```
 
-Services:
-
-- Frontend: `http://localhost:4200`
-- Backend: `http://localhost:5000`
-
-Stop the stack:
+Stop services:
 
 ```bash
 docker compose down
@@ -272,7 +340,7 @@ docker compose down
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/organizations/list` | List organizations for the current user |
+| GET | `/api/organizations/list` | List user organizations |
 | POST | `/api/organizations` | Create a new organization |
 | GET | `/api/organizations/current` | Get active organization |
 
@@ -281,34 +349,34 @@ docker compose down
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/api/users` | List organization members |
-| POST | `/api/users/invite` | Queue an invitation for a teammate |
+| POST | `/api/users/invite` | Queue teammate invitation |
 
 ### Billing
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/billing/subscription` | Get current organization subscription |
-| POST | `/api/billing/checkout` | Create a Checkout-shaped subscription session |
-| POST | `/api/billing/webhook` | Receive Stripe webhook events |
+| GET | `/api/billing/subscription` | Get current subscription |
+| POST | `/api/billing/checkout` | Create Checkout-shaped session |
+| POST | `/api/billing/webhook` | Receive Stripe events |
 
 ### API Keys
 
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/api/api-keys` | List organization API keys |
-| POST | `/api/api-keys` | Generate a new API key |
-| DELETE | `/api/api-keys/{id}` | Revoke an API key |
+| POST | `/api/api-keys` | Generate API key |
+| DELETE | `/api/api-keys/{id}` | Revoke API key |
 
 ### Usage
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/usage` | Get usage totals, trend, and recent events |
-| POST | `/api/usage/ingest` | Ingest usage using an API key |
+| GET | `/api/usage` | Usage totals, trend, and activity |
+| POST | `/api/usage/ingest` | Ingest usage using API key |
 
 ## Example Usage Ingestion
 
-Create an API key in the dashboard, copy the one-time secret, and send a usage event:
+Create an API key in the dashboard, copy the one-time secret, then send usage:
 
 ```bash
 curl -X POST http://localhost:5000/api/usage/ingest \
@@ -319,88 +387,85 @@ curl -X POST http://localhost:5000/api/usage/ingest \
 
 ## Stripe Billing Notes
 
-This starter follows the recommended SaaS pattern of using Stripe Billing with Checkout Sessions for subscriptions.
+This project is structured around Stripe Billing plus Checkout Sessions for subscriptions.
 
-Current local behavior:
+Current demo behavior:
 
-- The backend accepts `pro` and `enterprise` checkout requests.
-- Price IDs are read from configuration.
-- A Checkout-shaped test URL is returned so the demo can run without real Stripe credentials.
-- Webhook events are tracked by event ID to avoid duplicate processing.
+- Billing requests accept `pro` and `enterprise`.
+- Price IDs come from configuration.
+- `BillingService` returns a Checkout-shaped test URL so the demo runs without Stripe credentials.
+- `StripeWebhookService` stores processed event IDs to prevent duplicate processing.
 
-Production Stripe work to add:
+Production work to add:
 
-- Install and configure Stripe.net.
-- Replace the demo Checkout URL generation with `SessionService.Create`.
-- Use `mode=subscription`.
-- Pass `organization_id` and `plan` in Checkout metadata.
-- Verify `Stripe-Signature` using `Stripe__WebhookSecret`.
-- Use real Stripe Price IDs for Pro and Enterprise.
+- Add Stripe.net.
+- Replace demo checkout URL generation with `SessionService.Create`.
+- Use Checkout `mode=subscription`.
+- Pass `organization_id` and `plan` metadata.
+- Verify webhook signatures with `Stripe__WebhookSecret`.
+- Add Stripe Customer Portal for self-service billing.
 
 ## Security Notes
 
-- Passwords are hashed with PBKDF2 before storage.
+- Passwords are hashed with PBKDF2.
 - API keys are shown once and stored as SHA-256 hashes.
-- Dashboard APIs require JWT Bearer tokens.
+- Dashboard requests require JWT Bearer tokens.
 - Organization access is checked through memberships.
-- Owner/Admin actions are protected in backend endpoints.
-- Stripe webhook event IDs are stored to prevent duplicate processing.
-- `.env` is ignored and should never be committed.
+- Owner/Admin-only operations are enforced in backend endpoints.
+- Stripe event IDs are stored for webhook idempotency.
+- `.env` is ignored by Git.
 
 ## Development Commands
 
-Build backend:
+Backend build:
 
 ```bash
 dotnet build backend/SaaS.Api.csproj
 ```
 
-Build frontend:
+Frontend build:
 
 ```bash
 cd frontend
 npm run build
 ```
 
-Run frontend dev server:
+Run frontend:
 
 ```bash
 cd frontend
 npm start
 ```
 
-Run backend dev server:
+Run backend:
 
 ```bash
 dotnet run --project backend/SaaS.Api.csproj --launch-profile http
 ```
 
-## Current Demo Limitations
+## Current Demo Limits
 
-This repository is a working starter, but it keeps the first version lightweight:
-
-- Data is stored in memory and resets when the backend restarts.
-- Team invitations are recorded but not emailed.
-- Stripe Checkout is shaped for integration but does not call Stripe.net yet.
-- Webhook signature verification is listed as a production next step.
+- Data is in memory and resets when the backend restarts.
+- Invitations are recorded but not emailed.
+- Checkout is integration-shaped but does not call Stripe.net yet.
+- Webhook signature verification is a production next step.
 - Automated tests are not included yet.
 
 ## Production Roadmap
 
-Before deploying as a real SaaS product:
-
-- Replace the in-memory store with PostgreSQL and Entity Framework Core.
+- Replace `PlatformStore` with PostgreSQL and Entity Framework Core.
+- Add database migrations and repository/query abstractions.
 - Add ASP.NET Core authentication and authorization middleware policies.
-- Add refresh tokens or short-lived access tokens with secure refresh flow.
-- Add email delivery for invitations.
-- Add Stripe.net Checkout Session creation and signature-verified webhooks.
-- Add subscription customer portal support.
-- Add database migrations and seed scripts.
-- Add rate limiting for API-key usage ingestion.
-- Add backend and frontend automated tests.
-- Add CI/CD with build, test, and container publish steps.
+- Add refresh tokens or secure short-lived session handling.
+- Add real email delivery for invitations.
+- Integrate Stripe.net Checkout and signature-verified webhooks.
+- Add Stripe Customer Portal.
+- Add API-key rate limiting by plan.
+- Add backend unit/integration tests.
+- Add Angular component and route tests.
+- Add CI/CD for build, test, Docker image publish, and deployment.
 - Move secrets to a managed secret store.
-- Configure production CORS, HTTPS, logging, monitoring, and error tracking.
+- Add structured logging, monitoring, tracing, and error tracking.
 
 ## License
 
