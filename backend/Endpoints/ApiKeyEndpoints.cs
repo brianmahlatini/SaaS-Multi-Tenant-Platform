@@ -11,9 +11,9 @@ public static class ApiKeyEndpoints
     {
         var group = app.MapGroup("/api/api-keys").WithTags("API Keys");
 
-        group.MapGet("/", List);
-        group.MapPost("/", Create);
-        group.MapDelete("/{id:guid}", Revoke);
+        group.MapGet("/", List).RequireRateLimiting("dashboard");
+        group.MapPost("/", Create).RequireRateLimiting("dashboard");
+        group.MapDelete("/{id:guid}", Revoke).RequireRateLimiting("dashboard");
 
         return app;
     }

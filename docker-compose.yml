@@ -6,9 +6,19 @@ services:
       ASPNETCORE_URLS: http://+:5000
       ASPNETCORE_ENVIRONMENT: Development
       Cors__Origins__0: http://localhost:4200
+      ConnectionStrings__Redis: redis:6379
+      RabbitMQ__Enabled: "true"
+      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__Port: 5672
+      RabbitMQ__UserName: guest
+      RabbitMQ__Password: guest
+      RabbitMQ__QueueName: saas-platform-events
       Jwt__SigningKey: dev-only-signing-key-change-before-production-32chars
       Stripe__ProPriceId: price_pro_replace_me
       Stripe__EnterprisePriceId: price_enterprise_replace_me
+    depends_on:
+      - redis
+      - rabbitmq
     ports:
       - "5000:5000"
 
@@ -19,3 +29,14 @@ services:
       - backend
     ports:
       - "4200:4200"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"

@@ -11,9 +11,9 @@ public static class AuthEndpoints
     {
         var group = app.MapGroup("/api/auth").WithTags("Authentication");
 
-        group.MapPost("/register", Register);
-        group.MapPost("/login", Login);
-        group.MapGet("/me", Me);
+        group.MapPost("/register", Register).RequireRateLimiting("dashboard");
+        group.MapPost("/login", Login).RequireRateLimiting("dashboard");
+        group.MapGet("/me", Me).RequireRateLimiting("dashboard");
 
         return app;
     }

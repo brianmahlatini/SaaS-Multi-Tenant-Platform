@@ -1,27 +1,28 @@
 # SaaS Multi-Tenant Platform
 
-A full-stack SaaS platform starter built with **Angular** and **ASP.NET Core/C#**. The project is separated into a frontend application and backend API, with a structure that keeps routing, components, services, endpoint groups, contracts, domain models, and security concerns out of one-file implementations.
-
-The app demonstrates common SaaS foundations: organization-based multi-tenancy, JWT authentication, role-aware access checks, team invitations, Stripe Checkout-style subscriptions, hashed API keys, and usage analytics.
+A full-stack SaaS platform starter built with **Angular** and **ASP.NET Core/C#**. The project is separated into a frontend application and backend API, with feature routes, endpoint groups, services, contracts, security helpers, caching, background jobs, queue messaging, real-time updates, rate limiting, and monitoring.
 
 ![Operations overview](docs/screenshots/overview.png)
 
-## Highlights
+## Implemented Features
 
-- Clean frontend/backend separation
-- Angular feature routes instead of one giant component
-- Shared Angular API client, session store, and dashboard store
-- ASP.NET Core endpoint groups instead of one giant `Program.cs`
-- Separate backend contracts, domain records, services, persistence, and security helpers
-- Organization-scoped dashboard APIs using `X-Organization-ID`
+- Multi-tenant organizations with organization-scoped dashboard APIs
 - JWT login, registration, and session restore
-- Owner/Admin checks for privileged actions
-- Stripe Checkout-shaped billing using Price IDs
-- Idempotent Stripe webhook processing
-- One-time API key display with SHA-256 storage
-- Usage ingestion with `X-API-Key`
-- Docker Compose support
-- README screenshots stored in `docs/screenshots`
+- Owner/Admin/Member role model with privileged endpoint checks
+- Angular routed dashboard: `/auth`, `/overview`, `/usage`, `/billing`, `/team`, `/api-keys`
+- Stripe Checkout-shaped subscription flow using Stripe Price IDs
+- Stripe webhook endpoint with idempotent event handling
+- API key generation with one-time secret display
+- SHA-256 API key storage, revocation, and last-used tracking
+- API usage ingestion using `X-API-Key`
+- Redis-backed distributed caching for usage summaries
+- Hosted background job queue for async tasks
+- RabbitMQ event publishing and consumer service
+- SignalR WebSocket hub for real-time usage updates
+- ASP.NET Core rate limiting for dashboard and ingest APIs
+- Structured request logging middleware
+- Lightweight monitoring metrics endpoint
+- Docker Compose services for backend, frontend, Redis, and RabbitMQ
 
 ## Screenshots
 
@@ -58,7 +59,8 @@ The app demonstrates common SaaS foundations: organization-based multi-tenancy, 
 - Angular Router
 - Angular Reactive Forms
 - Angular HttpClient
-- Signals for local UI/application state
+- Angular Signals
+- Microsoft SignalR client
 - CSS
 
 ### Backend
@@ -66,137 +68,137 @@ The app demonstrates common SaaS foundations: organization-based multi-tenancy, 
 - ASP.NET Core Web API
 - C#
 - Minimal API endpoint groups
-- JWT token generation and validation
+- JWT tokens
+- SignalR
+- Redis distributed cache via `IDistributedCache`
+- RabbitMQ event bus
+- Hosted background services
+- ASP.NET Core rate limiting
 - PBKDF2 password hashing
 - SHA-256 API key hashing
-- In-memory store for demo/local development
 
 ### Infrastructure
 
 - Docker
 - Docker Compose
-- Stripe Billing/Checkout-compatible integration shape
+- Redis
+- RabbitMQ with management UI
+- Stripe Billing/Checkout-compatible boundary
 
-## Senior-Level Project Structure
+## Project Structure
 
 ```text
 .
-├── backend/
-│   ├── Contracts/
-│   │   ├── Requests.cs              # Request DTOs for API input
-│   │   └── Responses.cs             # Response DTOs sent to the frontend
-│   ├── Domain/
-│   │   └── Entities.cs              # Core SaaS domain records and enums
-│   ├── Endpoints/
-│   │   ├── ApiKeyEndpoints.cs       # API key list/create/revoke routes
-│   │   ├── AuthEndpoints.cs         # Register/login/me routes
-│   │   ├── BillingEndpoints.cs      # Subscription, checkout, webhook routes
-│   │   ├── HealthEndpoints.cs       # Health check route
-│   │   ├── OrganizationEndpoints.cs # Organization routes
-│   │   ├── TeamEndpoints.cs         # Member and invite routes
-│   │   └── UsageEndpoints.cs        # Usage summary and ingest routes
-│   ├── Persistence/
-│   │   ├── PlatformStore.cs         # Demo in-memory store
-│   │   └── SeedData.cs              # Demo tenant/user/usage seed data
-│   ├── Security/
-│   │   ├── CurrentUser.cs           # Request auth context resolver
-│   │   ├── PasswordHasher.cs        # PBKDF2 password hashing
-│   │   └── TokenService.cs          # JWT create/validate service
-│   ├── Services/
-│   │   ├── ApiKeyService.cs         # API key generation/authentication
-│   │   ├── BillingService.cs        # Checkout-session boundary
-│   │   └── StripeWebhookService.cs  # Webhook event handling/idempotency
-│   ├── Properties/
-│   │   └── launchSettings.json
-│   ├── Dockerfile
-│   ├── Program.cs                   # Composition root only
-│   ├── SaaS.Api.csproj
-│   ├── appsettings.Development.json
-│   └── appsettings.json
-├── frontend/
-│   ├── public/
-│   │   └── dashboard-bg.svg
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── core/
-│   │   │   │   ├── api-client.service.ts   # Typed HTTP boundary
-│   │   │   │   ├── dashboard.store.ts      # Dashboard data/actions
-│   │   │   │   ├── models.ts               # Shared frontend interfaces
-│   │   │   │   └── session.store.ts        # Auth/session state
-│   │   │   ├── features/
-│   │   │   │   ├── api-keys/
-│   │   │   │   │   ├── api-keys.component.html
-│   │   │   │   │   └── api-keys.component.ts
-│   │   │   │   ├── auth/
-│   │   │   │   │   ├── auth.component.html
-│   │   │   │   │   └── auth.component.ts
-│   │   │   │   ├── billing/
-│   │   │   │   │   ├── billing.component.html
-│   │   │   │   │   └── billing.component.ts
-│   │   │   │   ├── dashboard/
-│   │   │   │   │   ├── dashboard.component.html
-│   │   │   │   │   └── dashboard.component.ts
-│   │   │   │   ├── overview/
-│   │   │   │   │   ├── overview.component.html
-│   │   │   │   │   └── overview.component.ts
-│   │   │   │   ├── team/
-│   │   │   │   │   ├── team.component.html
-│   │   │   │   │   └── team.component.ts
-│   │   │   │   └── usage/
-│   │   │   │       ├── usage.component.html
-│   │   │   │       └── usage.component.ts
-│   │   │   ├── app.config.ts        # App providers
-│   │   │   ├── app.css
-│   │   │   ├── app.html             # Router outlet only
-│   │   │   ├── app.routes.ts        # Route configuration
-│   │   │   └── app.ts               # Root shell component
-│   │   ├── index.html
-│   │   ├── main.ts
-│   │   └── styles.css               # Shared app styling
-│   ├── Dockerfile
-│   ├── angular.json
-│   ├── package-lock.json
-│   ├── package.json
-│   └── tsconfig.json
-├── docs/
-│   └── screenshots/
-├── .env.example
-├── .gitignore
-├── docker-compose.yml
-├── README.md
-└── SaaSMultiTenantPlatform.slnx
+|-- backend/
+|   |-- Contracts/
+|   |   |-- Requests.cs
+|   |   `-- Responses.cs
+|   |-- Domain/
+|   |   `-- Entities.cs
+|   |-- Endpoints/
+|   |   |-- ApiKeyEndpoints.cs
+|   |   |-- AuthEndpoints.cs
+|   |   |-- BillingEndpoints.cs
+|   |   |-- HealthEndpoints.cs
+|   |   |-- OrganizationEndpoints.cs
+|   |   |-- TeamEndpoints.cs
+|   |   `-- UsageEndpoints.cs
+|   |-- Infrastructure/
+|   |   |-- Caching/
+|   |   |   `-- CacheKeys.cs
+|   |   |-- Jobs/
+|   |   |   |-- BackgroundJobQueue.cs
+|   |   |   |-- IBackgroundJobQueue.cs
+|   |   |   `-- QueuedHostedService.cs
+|   |   |-- Messaging/
+|   |   |   |-- IEventBus.cs
+|   |   |   |-- PlatformEvent.cs
+|   |   |   |-- RabbitMqConsumerService.cs
+|   |   |   |-- RabbitMqEventBus.cs
+|   |   |   `-- RabbitMqOptions.cs
+|   |   `-- Monitoring/
+|   |       |-- AppMetrics.cs
+|   |       `-- RequestLoggingMiddleware.cs
+|   |-- Persistence/
+|   |   |-- PlatformStore.cs
+|   |   `-- SeedData.cs
+|   |-- Realtime/
+|   |   `-- RealtimeHub.cs
+|   |-- Security/
+|   |   |-- CurrentUser.cs
+|   |   |-- PasswordHasher.cs
+|   |   `-- TokenService.cs
+|   |-- Services/
+|   |   |-- ApiKeyService.cs
+|   |   |-- BillingService.cs
+|   |   `-- StripeWebhookService.cs
+|   |-- Dockerfile
+|   |-- Program.cs
+|   |-- SaaS.Api.csproj
+|   `-- appsettings.json
+|-- frontend/
+|   |-- public/
+|   |   `-- dashboard-bg.svg
+|   |-- src/
+|   |   |-- app/
+|   |   |   |-- core/
+|   |   |   |   |-- api-client.service.ts
+|   |   |   |   |-- dashboard.store.ts
+|   |   |   |   |-- models.ts
+|   |   |   |   |-- realtime.service.ts
+|   |   |   |   `-- session.store.ts
+|   |   |   |-- features/
+|   |   |   |   |-- api-keys/
+|   |   |   |   |-- auth/
+|   |   |   |   |-- billing/
+|   |   |   |   |-- dashboard/
+|   |   |   |   |-- overview/
+|   |   |   |   |-- team/
+|   |   |   |   `-- usage/
+|   |   |   |-- app.config.ts
+|   |   |   |-- app.routes.ts
+|   |   |   |-- app.ts
+|   |   |   `-- app.html
+|   |   |-- index.html
+|   |   |-- main.ts
+|   |   `-- styles.css
+|   |-- Dockerfile
+|   |-- angular.json
+|   |-- package-lock.json
+|   `-- package.json
+|-- docs/
+|   `-- screenshots/
+|-- .env.example
+|-- docker-compose.yml
+|-- README.md
+`-- SaaSMultiTenantPlatform.slnx
 ```
 
-## Architecture
+## Backend Architecture
 
-### Backend Architecture
+`Program.cs` is the composition root only. It registers services, configures CORS, SignalR, Redis caching, RabbitMQ options, rate limiter policies, hosted workers, and endpoint groups.
 
-`Program.cs` is now a composition root. It configures services, middleware, endpoint groups, and seed data only.
-
-Endpoint files own HTTP route mapping and request/response orchestration:
+Endpoint groups own routing:
 
 - `AuthEndpoints` handles register, login, and session restore.
 - `OrganizationEndpoints` handles tenant lookup and creation.
 - `TeamEndpoints` handles members and invitations.
-- `BillingEndpoints` handles subscription state, checkout creation, and webhooks.
+- `BillingEndpoints` handles subscription state, checkout, and webhooks.
 - `ApiKeyEndpoints` handles API key lifecycle.
-- `UsageEndpoints` handles usage analytics and ingestion.
+- `UsageEndpoints` handles cached usage analytics and API-key ingestion.
+- `HealthEndpoints` exposes health and monitoring metrics.
 
-Business support code lives outside endpoint files:
+Infrastructure code is separated:
 
-- `TokenService` creates and validates JWTs.
-- `CurrentUser` resolves the authenticated user and organization context from each request.
-- `PasswordHasher` handles password hashing and verification.
-- `ApiKeyService` generates API keys and authenticates usage-ingestion requests.
-- `BillingService` owns the Checkout Session boundary.
-- `StripeWebhookService` owns webhook event handling and idempotency.
-- `PlatformStore` is the current in-memory persistence layer.
+- `Caching` contains cache key conventions.
+- `Jobs` contains a channel-backed background job queue and hosted worker.
+- `Messaging` contains RabbitMQ event publishing and consumption.
+- `Monitoring` contains request logging and in-process metrics.
+- `Realtime` contains the SignalR hub.
 
-This structure makes it much easier to replace the demo store with Entity Framework Core later without rewriting the API surface.
+## Frontend Architecture
 
-### Frontend Architecture
-
-The frontend is route-driven and split by feature.
+The Angular app is route-driven and split by feature.
 
 Routes:
 
@@ -211,9 +213,10 @@ Routes:
 
 Core services:
 
-- `ApiClient` is the typed HTTP layer.
-- `SessionStore` owns login, registration, JWT storage, session restore, logout, and auth headers.
-- `DashboardStore` owns subscription, team, usage, API keys, checkout, invites, and sample usage actions.
+- `ApiClient` is the typed HTTP boundary.
+- `SessionStore` owns JWT/session state and auth headers.
+- `DashboardStore` owns dashboard data and user actions.
+- `RealtimeService` owns the SignalR connection and refreshes usage after real-time events.
 
 Feature components stay focused on UI and forms:
 
@@ -232,7 +235,7 @@ Feature components stay focused on UI and forms:
 - .NET SDK 10 or newer
 - Node.js 22 or newer
 - npm
-- Docker Desktop, optional
+- Docker Desktop, optional for Redis/RabbitMQ stack
 - Stripe account, optional for real billing integration
 
 ### Clone
@@ -255,13 +258,20 @@ Important values:
 ```text
 Jwt__SigningKey=replace-with-a-long-random-value-at-least-32-chars
 Cors__Origins__0=http://localhost:4200
+ConnectionStrings__Redis=localhost:6379
+RabbitMQ__Enabled=true
+RabbitMQ__HostName=localhost
+RabbitMQ__Port=5672
+RabbitMQ__UserName=guest
+RabbitMQ__Password=guest
+RabbitMQ__QueueName=saas-platform-events
 Stripe__ApiKey=sk_test_replace_me
 Stripe__WebhookSecret=whsec_replace_me
 Stripe__ProPriceId=price_pro_replace_me
 Stripe__EnterprisePriceId=price_enterprise_replace_me
 ```
 
-The demo also has development defaults in `backend/appsettings.json`.
+The backend falls back to in-memory distributed cache when no Redis connection string is configured. RabbitMQ is disabled by default in `appsettings.json` and enabled in Docker Compose.
 
 ### Install Dependencies
 
@@ -279,7 +289,7 @@ npm install
 cd ..
 ```
 
-### Run Locally
+### Run Locally Without Docker
 
 Start the backend:
 
@@ -299,7 +309,34 @@ Open:
 ```text
 Frontend: http://localhost:4200
 Backend health: http://localhost:5000/api/health
+Monitoring metrics: http://localhost:5000/api/monitoring/metrics
+SignalR hub: http://localhost:5000/hubs/realtime
 OpenAPI JSON: http://localhost:5000/openapi/v1.json
+```
+
+## Docker
+
+Run the full stack:
+
+```bash
+docker compose up --build
+```
+
+Services:
+
+```text
+Frontend: http://localhost:4200
+Backend: http://localhost:5000
+Redis: localhost:6379
+RabbitMQ: localhost:5672
+RabbitMQ Management UI: http://localhost:15672
+RabbitMQ login: guest / guest
+```
+
+Stop services:
+
+```bash
+docker compose down
 ```
 
 ## Demo Account
@@ -310,20 +347,6 @@ Password: ChangeMe123!
 Organization: Acme Cloud
 Role: Owner
 Plan: Pro
-```
-
-## Docker
-
-Run both apps:
-
-```bash
-docker compose up --build
-```
-
-Stop services:
-
-```bash
-docker compose down
 ```
 
 ## API Endpoints
@@ -349,7 +372,7 @@ docker compose down
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/api/users` | List organization members |
-| POST | `/api/users/invite` | Queue teammate invitation |
+| POST | `/api/users/invite` | Queue teammate invitation job and publish event |
 
 ### Billing
 
@@ -371,8 +394,15 @@ docker compose down
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/usage` | Usage totals, trend, and activity |
-| POST | `/api/usage/ingest` | Ingest usage using API key |
+| GET | `/api/usage` | Cached usage totals, trend, and activity |
+| POST | `/api/usage/ingest` | Ingest usage using API key, invalidate cache, publish event, and notify SignalR clients |
+
+### Monitoring
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/health` | API health check |
+| GET | `/api/monitoring/metrics` | Uptime, request counts, failed requests, and request counts by path |
 
 ## Example Usage Ingestion
 
@@ -384,6 +414,35 @@ curl -X POST http://localhost:5000/api/usage/ingest \
   -H "X-API-Key: sk_test_your_key" \
   -d "{\"path\":\"/v1/events\",\"method\":\"POST\",\"statusCode\":202,\"units\":3}"
 ```
+
+## Infrastructure Details
+
+### Redis Caching
+
+`UsageEndpoints` caches usage summaries with `IDistributedCache`. When usage is ingested, the organization usage cache key is invalidated. If Redis is configured, the cache is distributed. If not, the app uses in-memory distributed cache for local development.
+
+### Background Jobs
+
+`IBackgroundJobQueue` and `QueuedHostedService` provide a lightweight hosted background job system. Team invitations enqueue an async invitation job after the API request stores the invitation.
+
+### RabbitMQ
+
+`RabbitMqEventBus` publishes platform events such as `team.invitation.created` and `usage.ingested`. `RabbitMqConsumerService` consumes from the configured queue and logs processed messages. RabbitMQ is enabled in Docker Compose.
+
+### WebSockets
+
+`RealtimeHub` is a SignalR hub at `/hubs/realtime`. The Angular `RealtimeService` connects after login, joins the organization group, and refreshes usage when `usageUpdated` events arrive.
+
+### API Rate Limiting
+
+The backend defines two policies:
+
+- `dashboard`: 120 requests per minute per remote IP
+- `ingest`: 60 requests per minute per API key or remote IP
+
+### Logging and Monitoring
+
+`RequestLoggingMiddleware` logs method, path, status code, and elapsed time for every request. `AppMetrics` tracks uptime, total requests, failed requests, and request counts by path.
 
 ## Stripe Billing Notes
 
@@ -398,8 +457,7 @@ Current demo behavior:
 
 Production work to add:
 
-- Add Stripe.net.
-- Replace demo checkout URL generation with `SessionService.Create`.
+- Add real Stripe.net Checkout Session creation.
 - Use Checkout `mode=subscription`.
 - Pass `organization_id` and `plan` metadata.
 - Verify webhook signatures with `Stripe__WebhookSecret`.
@@ -413,6 +471,7 @@ Production work to add:
 - Organization access is checked through memberships.
 - Owner/Admin-only operations are enforced in backend endpoints.
 - Stripe event IDs are stored for webhook idempotency.
+- Rate limits protect dashboard and ingest endpoints.
 - `.env` is ignored by Git.
 
 ## Development Commands
@@ -445,8 +504,8 @@ dotnet run --project backend/SaaS.Api.csproj --launch-profile http
 
 ## Current Demo Limits
 
-- Data is in memory and resets when the backend restarts.
-- Invitations are recorded but not emailed.
+- Main business data still uses the demo in-memory `PlatformStore`.
+- Invitations are queued and logged but not sent through a real email provider.
 - Checkout is integration-shaped but does not call Stripe.net yet.
 - Webhook signature verification is a production next step.
 - Automated tests are not included yet.
@@ -460,12 +519,13 @@ dotnet run --project backend/SaaS.Api.csproj --launch-profile http
 - Add real email delivery for invitations.
 - Integrate Stripe.net Checkout and signature-verified webhooks.
 - Add Stripe Customer Portal.
-- Add API-key rate limiting by plan.
+- Add durable job storage or MassTransit for larger distributed workflows.
+- Add API-key rate plans per subscription tier.
 - Add backend unit/integration tests.
 - Add Angular component and route tests.
 - Add CI/CD for build, test, Docker image publish, and deployment.
 - Move secrets to a managed secret store.
-- Add structured logging, monitoring, tracing, and error tracking.
+- Add production OpenTelemetry/Sentry/Application Insights export.
 
 ## License
 

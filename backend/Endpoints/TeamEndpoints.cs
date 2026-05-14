@@ -1,5 +1,7 @@
 using SaaS.Api.Contracts;
 using SaaS.Api.Domain;
+using SaaS.Api.Infrastructure.Jobs;
+using SaaS.Api.Infrastructure.Messaging;
 using SaaS.Api.Persistence;
 using SaaS.Api.Security;
 
@@ -11,8 +13,8 @@ public static class TeamEndpoints
     {
         var group = app.MapGroup("/api/users").WithTags("Team");
 
-        group.MapGet("/", List);
-        group.MapPost("/invite", Invite);
+        group.MapGet("/", List).RequireRateLimiting("dashboard");
+        group.MapPost("/invite", Invite).RequireRateLimiting("dashboard");
 
         return app;
     }
@@ -35,7 +37,13 @@ public static class TeamEndpoints
         return Results.Ok(members);
     }
 
-    private static IResult Invite(HttpContext http, InviteUserRequest request, PlatformStore store)
+    private static async Task<IResult> Invite(
+        HttpContext http,
+        InviteUserRequest request,
+        PlatformStore store,
+        IBackgroundJobQueue jobs,
+        IEventBus events,
+        ILoggerFactory loggerFactory)
     {
         var auth = CurrentUser.From(http, store);
         if (auth is null) return Results.Unauthorized();
@@ -46,6 +54,13 @@ public static class TeamEndpoints
 
         var invitation = new Invitation(Guid.NewGuid(), auth.Organization.Id, email, request.Role, "pending", DateTimeOffset.UtcNow);
         store.Invitations[invitation.Id] = invitation;
+        await events.PublishAsync(new PlatformEvent("team.invitation.created", auth.Organization.Id, new { invitation.Id, invitation.Email, invitation.Role }, DateTimeOffset.UtcNow), http.RequestAborted);
+        await jobs.QueueAsync(async cancellationToken =>
+        {
+            var logger = loggerFactory.CreateLogger("InvitationJobs");
+            await Task.Delay(250, cancellationToken);
+            logger.LogInformation("Invitation email job completed for {Email} in organization {OrganizationId}", invitation.Email, invitation.OrganizationId);
+        });
 
         return Results.Ok(new InvitationDto(invitation.Id, invitation.Email, invitation.Role.ToString(), invitation.Status, invitation.CreatedAt));
     }

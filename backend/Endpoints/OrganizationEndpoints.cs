@@ -11,9 +11,9 @@ public static class OrganizationEndpoints
     {
         var group = app.MapGroup("/api/organizations").WithTags("Organizations");
 
-        group.MapGet("/list", List);
-        group.MapPost("/", Create);
-        group.MapGet("/current", Current);
+        group.MapGet("/list", List).RequireRateLimiting("dashboard");
+        group.MapPost("/", Create).RequireRateLimiting("dashboard");
+        group.MapGet("/current", Current).RequireRateLimiting("dashboard");
 
         return app;
     }

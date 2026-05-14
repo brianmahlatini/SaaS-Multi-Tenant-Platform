@@ -12,9 +12,9 @@ public static class BillingEndpoints
     {
         var group = app.MapGroup("/api/billing").WithTags("Billing");
 
-        group.MapGet("/subscription", Subscription);
-        group.MapPost("/checkout", Checkout);
-        group.MapPost("/webhook", Webhook);
+        group.MapGet("/subscription", Subscription).RequireRateLimiting("dashboard");
+        group.MapPost("/checkout", Checkout).RequireRateLimiting("dashboard");
+        group.MapPost("/webhook", Webhook).RequireRateLimiting("dashboard");
 
         return app;
     }

@@ -1,6 +1,12 @@
+using System.Text.Json;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Caching.Distributed;
 using SaaS.Api.Contracts;
 using SaaS.Api.Domain;
+using SaaS.Api.Infrastructure.Caching;
+using SaaS.Api.Infrastructure.Messaging;
 using SaaS.Api.Persistence;
+using SaaS.Api.Realtime;
 using SaaS.Api.Security;
 using SaaS.Api.Services;
 
@@ -12,16 +18,23 @@ public static class UsageEndpoints
     {
         var group = app.MapGroup("/api/usage").WithTags("Usage");
 
-        group.MapGet("/", Summary);
-        group.MapPost("/ingest", Ingest);
+        group.MapGet("/", Summary).RequireRateLimiting("dashboard");
+        group.MapPost("/ingest", Ingest).RequireRateLimiting("ingest");
 
         return app;
     }
 
-    private static IResult Summary(HttpContext http, PlatformStore store)
+    private static async Task<IResult> Summary(HttpContext http, PlatformStore store, IDistributedCache cache)
     {
         var auth = CurrentUser.From(http, store);
         if (auth is null) return Results.Unauthorized();
+
+        var cacheKey = CacheKeys.UsageSummary(auth.Organization.Id);
+        var cached = await cache.GetStringAsync(cacheKey, http.RequestAborted);
+        if (!string.IsNullOrWhiteSpace(cached))
+        {
+            return Results.Content(cached, "application/json");
+        }
 
         var events = store.UsageEvents.Values
             .Where(e => e.OrganizationId == auth.Organization.Id)
@@ -35,15 +48,30 @@ public static class UsageEndpoints
             .Select(g => new UsagePointDto(g.Key.ToString("yyyy-MM-dd"), g.Sum(e => e.Units), g.Count()))
             .ToList();
 
-        return Results.Ok(new UsageSummaryDto(
+        var summary = new UsageSummaryDto(
             events.Sum(e => e.Units),
             events.Count,
             events.Count(e => e.StatusCode >= 400),
             daily,
-            events.Select(UsageEventDto.From).ToList()));
+            events.Select(UsageEventDto.From).ToList());
+
+        await cache.SetStringAsync(
+            cacheKey,
+            JsonSerializer.Serialize(summary),
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30) },
+            http.RequestAborted);
+
+        return Results.Ok(summary);
     }
 
-    private static IResult Ingest(HttpContext http, UsageIngestRequest request, PlatformStore store, ApiKeyService keys)
+    private static async Task<IResult> Ingest(
+        HttpContext http,
+        UsageIngestRequest request,
+        PlatformStore store,
+        ApiKeyService keys,
+        IDistributedCache cache,
+        IEventBus events,
+        IHubContext<RealtimeHub> hub)
     {
         var auth = keys.Authenticate(http, store);
         if (auth is null) return Results.Unauthorized();
@@ -60,6 +88,9 @@ public static class UsageEndpoints
 
         store.UsageEvents[usage.Id] = usage;
         store.ApiKeys[auth.Key.Id] = auth.Key with { LastUsedAt = DateTimeOffset.UtcNow };
+        await cache.RemoveAsync(CacheKeys.UsageSummary(auth.Key.OrganizationId), http.RequestAborted);
+        await events.PublishAsync(new PlatformEvent("usage.ingested", auth.Key.OrganizationId, UsageEventDto.From(usage), DateTimeOffset.UtcNow), http.RequestAborted);
+        await hub.Clients.Group(RealtimeHub.OrganizationGroup(auth.Key.OrganizationId)).SendAsync("usageUpdated", UsageEventDto.From(usage), http.RequestAborted);
 
         return Results.Accepted($"/api/usage/{usage.Id}", UsageEventDto.From(usage));
     }
